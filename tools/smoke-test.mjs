@@ -1,16 +1,16 @@
 // Headless smoke test: drive the launcher with "remote" keys the way a TV
 // would, boot cores and make sure RetroArch renders without errors.
 //
-// Usage: node smoke-test.mjs <site url> <rom folder url> [tizenbrew-like url]
+// Usage: node smoke-test.mjs <site url> <rom folder url> [cross-origin url]
 //   - scenario "menu": boot the first core straight into the RetroArch menu
 //   - scenario "rom":  load a ROM through the network-folder browser
-//   - scenario "remote-assets": served from 127.0.0.1 like TizenBrew, so
-//     cores and the bundle come cross-origin from GitHub Pages
+//   - scenario "remote-assets": cores and the bundle come from another origin,
+//     as in the .wgt (file://) where they come from GitHub Pages
 //   - scenario "gamepad": a controller already in use in the launcher must
 //     still reach RetroArch (app/pads.js)
 import { chromium } from "playwright";
 
-const [siteUrl, romUrl, tbUrl, romFile] = process.argv.slice(2);
+const [siteUrl, romUrl, remoteUrl] = process.argv.slice(2);
 const browser = await chromium.launch();
 let failed = false;
 
@@ -89,7 +89,7 @@ await scenario("rom", siteUrl, async (page, shot) => {
    if (before.equals(after)) throw new Error("red key did not change the screen (menu not opened)");
 });
 
-if (tbUrl) await scenario("remote-assets", tbUrl, bootMenu);
+if (remoteUrl) await scenario("remote-assets", remoteUrl, bootMenu);
 
 // A pad the page can see from the start: the browser never sends a
 // "gamepadconnected" event for it once RetroArch is listening, which is what
@@ -145,24 +145,6 @@ await scenario("n64", siteUrl + "?fps=1", async (page, shot) => {
    await remoteKey(page, 403); // red key -> RetroArch menu
    await page.waitForTimeout(2000);
    await shot("3-menu");
-});
-
-if (romFile) await scenario("phone", siteUrl, async (page, shot) => {
-   await page.waitForSelector("#phone-panel svg", { timeout: 20000 });
-   const phoneUrl = await page.$eval("#phone-url", (e) => e.textContent);
-   await shot("1-qr");
-   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
-   // the QR points at the TV's LAN address; in CI that is this runner
-   await phone.goto(phoneUrl);
-   await phone.setInputFiles("#file", romFile);
-   await phone.screenshot({ path: "shot-phone-2-phone.png" });
-   await phone.click("#send");
-   await phone.waitForSelector("#status.ok", { timeout: 30000 });
-   await phone.screenshot({ path: "shot-phone-3-phone-sent.png" });
-   await page.waitForSelector("body.playing", { timeout: 180000 });
-   await page.waitForTimeout(6000);
-   await shot("4-game");
-   await phone.close();
 });
 
 await browser.close();

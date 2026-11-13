@@ -1,7 +1,5 @@
 # RetroArch for Tizen
 
-**English** · [Türkçe](README.tr.md)
-
 This is a fork of [Sype0/retroarch-tizen](https://github.com/Sype0/retroarch-tizen) with gamepad fixes
 (controllers work in games after being used in the launcher, a Controller test screen, hold Start for the
 menu) and Game Mode.
@@ -10,40 +8,29 @@ RetroArch for Samsung Tizen smart TVs. It adds a TV-specific layer on top of the
 [libretro web player](https://web.libretro.com/) (RetroArch compiled to WebAssembly):
 
 - Launcher you drive with the TV remote (pick a system → pick a ROM → play)
-- Remote keys mapped to RetroArch controls, USB/Bluetooth gamepad support
-- **Send games from your phone via QR code** (TizenBrew): scan the QR code on the TV, pick a ROM, it starts on the TV
-- Load ROMs from a **USB drive** (.wgt only) or a **network folder** (HTTP)
+- Remote keys mapped to RetroArch controls, USB/Bluetooth gamepad support with a Controller test screen
+- Load ROMs from a **USB drive** or a **network folder** (HTTP)
+- Asks the TV for Game Mode (2022 and later models) for less input lag
 - Lightweight RGUI menu and defaults tuned for TVs
 - Saves and settings persist on the TV (IndexedDB)
 
 ## Installation
 
-### A) TizenBrew module (easiest)
+Install with [Apps2Samsung](https://github.com/Apps2Samsung/Apps2Samsung) (TV in Developer Mode):
 
-In TizenBrew's module manager, add:
+- add `github.com/genesai/retroarch-tizen` under **Your own sources**, then install and update
+  RetroArch from the catalog like any other app, or
+- download `RetroArch.wgt` from the [Releases](https://github.com/genesai/retroarch-tizen/releases)
+  page and install it as your own `.wgt`.
 
-```
-gh/genesai/retroarch-tizen
-```
+Apps2Samsung signs the package with your own certificate. The app id is `RtArchTzn0.RetroArch`, the
+same as upstream, so it replaces an upstream install signed with the same certificate. A
+[Vetro](https://github.com/andrearicci93/vetro) launcher can start it like any other installed app.
 
-### B) .wgt app (needed for USB support)
-
-In TizenBrew Installer, choose **install from a GitHub repository** and enter `genesai/retroarch-tizen`,
-or install `RetroArch.wgt` from the [Releases](https://github.com/genesai/retroarch-tizen/releases) page
-from a USB drive. On Tizen 7+ TVs the installer re-signs the package with your own certificate.
-
-The app shell runs on the TV; the emulator cores (wasm) are downloaded from
+The app runs on the TV; the emulator cores (wasm) and RetroArch's files are downloaded from
 <https://genesai.github.io/retroarch-tizen/> when you start them, so the TV needs internet access.
 
 ## Loading ROMs
-
-**From your phone (QR, easiest):** when running as a TizenBrew module, a QR code appears in the top
-right of the home screen. Scan it with your phone → pick the ROM on the page that opens (select the
-.cue and .bin together for CD games) → *Play on TV*. The system is picked from the file
-extension. Sending a new game while one is running switches the TV to it.
-The ROM never leaves your network: it goes straight from the phone to a small service running on the
-TV ([`tizenbrew/service.js`](tizenbrew/service.js), port 8085). Phone and TV must be on the same Wi-Fi.
-Not available in the .wgt version, because a .wgt app cannot run a server on the TV.
 
 **Network folder:** on the computer or phone that has your ROMs (Termux works too):
 
@@ -71,6 +58,15 @@ Enter the address it prints (e.g. `http://192.168.1.20:8000/`) on the TV under
 | Play/Pause | Pause |
 
 To leave a game, choose **Quit RetroArch** in the menu.
+
+## Gamepads
+
+USB and Bluetooth controllers that the TV passes on to apps work in the launcher and in games. On a
+controller, hold **Start** for 2 seconds to open the RetroArch menu. **Controller test** on the home
+screen lists every controller the TV reports, whether it uses the standard button layout, and the
+buttons and sticks as you press them. If a controller is missing there, try another of its modes (for
+8BitDo controllers: hold Start with B, X, Y or A while switching it on) and pair it again. A controller
+without the standard layout can be remapped under *Settings → Input → RetroPad Binds*.
 
 ## Systems
 
@@ -102,7 +98,8 @@ so very large CD images (hundreds of MB) can cause problems.
 4. Publishes `app/` + cores + bundle to GitHub Pages.
 5. Builds a signed `RetroArch.wgt` with [tizen.js](https://github.com/reisxd/tizen.js); a `v*` tag creates a Release.
 6. Runs headless Chromium smoke tests ([`tools/smoke-test.mjs`](tools/smoke-test.mjs)): booting a core,
-   loading a ROM from a network folder, TizenBrew-style cross-origin assets, N64, and phone → TV transfer.
+   loading a ROM from a network folder, cross-origin assets as in the .wgt, a controller used in the
+   launcher and then in game, and N64.
 
 `extra-cores.yml` builds cores that the libretro buildbot doesn't ship for the web, together with
 RetroArch master, using Emscripten ([`tools/extra-cores/build-core.sh`](tools/extra-cores/build-core.sh)):
@@ -110,8 +107,10 @@ symbols in the core's copy of libretro-common that clash with RetroArch are rena
 libco gets an Emscripten fiber backend ([`libco_emscripten_fiber.c`](tools/extra-cores/libco_emscripten_fiber.c),
 linked with Asyncify).
 
-Signing uses the repo secrets `TIZEN_AUTHOR_P12` (base64 PKCS#12) and `TIZEN_AUTHOR_PASSWORD`; without
-them each build signs with a throwaway certificate.
+The release `.wgt` is signed with the repo secrets `TIZEN_AUTHOR_P12` (base64 PKCS#12) and
+`TIZEN_AUTHOR_PASSWORD`, or a throwaway certificate without them; Apps2Samsung re-signs it with yours.
+Until this repo has its own `extra-cores` release, the build takes those cores from
+[Sype0/retroarch-tizen](https://github.com/Sype0/retroarch-tizen)'s.
 
 To try it locally, serve the `app/` folder with any web server; the `?base=https://genesai.github.io/retroarch-tizen/`
 parameter loads the cores from GitHub Pages, and `?fps=1` shows RetroArch's frame counter.

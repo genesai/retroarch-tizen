@@ -2,29 +2,11 @@
   "name": "retroarch-tizen",
   "appName": "RetroArch",
   "version": "0.3.2",
-  "description": "RetroArch (libretro web player) for Samsung Tizen TVs: remote control support, send games from your phone via QR code, ROMs from USB or a network folder.",
-  "packageType": "app",
-  "appPath": "app/index.html",
-  "keys": [
-    "ColorF0Red",
-    "ColorF1Green",
-    "ColorF2Yellow",
-    "ColorF3Blue",
-    "MediaPlayPause",
-    "MediaPlay",
-    "MediaPause",
-    "ChannelUp",
-    "ChannelDown",
-    "0",
-    "1",
-    "2",
-    "3"
-  ],
+  "description": "RetroArch (libretro web player) for Samsung Tizen TVs: remote control and gamepad support, ROMs from USB or a network folder.",
   "author": "genesai (fork of Sype0/retroarch-tizen)",
   "license": "GPL-3.0-or-later",
   "repository": {
     "type": "git",
     "url": "https://github.com/genesai/retroarch-tizen.git"
-  },
-  "serviceFile": "tizenbrew/service.js"
+  }
 }

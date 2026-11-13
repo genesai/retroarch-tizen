@@ -4,8 +4,8 @@
 Usage:  python3 rom-server.py [folder] [port]
 
 Works on Windows, Linux, macOS and Android (Termux). Same as
-`python3 -m http.server`, plus the CORS header the TV app needs when it runs
-inside TizenBrew.
+`python3 -m http.server`, plus the CORS header the TV app needs to read from
+it (the app's own files are not served from this address).
 """
 import http.server
 import os
