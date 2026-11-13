@@ -12,5 +12,8 @@
     <tizen:privilege name="http://tizen.org/privilege/externalstorage"/>
     <tizen:privilege name="http://tizen.org/privilege/mediastorage"/>
     <tizen:profile name="tv-samsung"/>
+    <!-- Ask the TV for Game Mode (no picture processing, less input lag).
+         Read by Samsung TVs from 2022 on; older ones ignore it. -->
+    <tizen:metadata key="http://samsung.com/tv/metadata/use.game.mode" value="true"/>
     <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
 </widget>
