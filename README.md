@@ -2,6 +2,10 @@
 
 **English** · [Türkçe](README.tr.md)
 
+This is a fork of [Sype0/retroarch-tizen](https://github.com/Sype0/retroarch-tizen) with gamepad fixes
+(controllers work in games after being used in the launcher, a Controller test screen, hold Start for the
+menu) and Game Mode.
+
 RetroArch for Samsung Tizen smart TVs. It adds a TV-specific layer on top of the
 [libretro web player](https://web.libretro.com/) (RetroArch compiled to WebAssembly):
 
@@ -19,17 +23,17 @@ RetroArch for Samsung Tizen smart TVs. It adds a TV-specific layer on top of the
 In TizenBrew's module manager, add:
 
 ```
-gh/Sype0/retroarch-tizen
+gh/genesai/retroarch-tizen
 ```
 
 ### B) .wgt app (needed for USB support)
 
-In TizenBrew Installer, choose **install from a GitHub repository** and enter `Sype0/retroarch-tizen`,
-or install `RetroArch.wgt` from the [Releases](https://github.com/Sype0/retroarch-tizen/releases) page
+In TizenBrew Installer, choose **install from a GitHub repository** and enter `genesai/retroarch-tizen`,
+or install `RetroArch.wgt` from the [Releases](https://github.com/genesai/retroarch-tizen/releases) page
 from a USB drive. On Tizen 7+ TVs the installer re-signs the package with your own certificate.
 
 The app shell runs on the TV; the emulator cores (wasm) are downloaded from
-<https://sype0.github.io/retroarch-tizen/> when you start them, so the TV needs internet access.
+<https://genesai.github.io/retroarch-tizen/> when you start them, so the TV needs internet access.
 
 ## Loading ROMs
 
@@ -109,7 +113,7 @@ linked with Asyncify).
 Signing uses the repo secrets `TIZEN_AUTHOR_P12` (base64 PKCS#12) and `TIZEN_AUTHOR_PASSWORD`; without
 them each build signs with a throwaway certificate.
 
-To try it locally, serve the `app/` folder with any web server; the `?base=https://sype0.github.io/retroarch-tizen/`
+To try it locally, serve the `app/` folder with any web server; the `?base=https://genesai.github.io/retroarch-tizen/`
 parameter loads the cores from GitHub Pages, and `?fps=1` shows RetroArch's frame counter.
 
 ## License

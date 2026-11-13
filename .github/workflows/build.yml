@@ -63,7 +63,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p /tmp/extra
-          if gh release download extra-cores -R "$GITHUB_REPOSITORY" -D /tmp/extra -p '*_libretro.*'; then
+          # A fresh fork has no extra-cores release until extra-cores.yml has run
+          # there, so fall back to upstream's rather than ship without those cores.
+          if gh release download extra-cores -R "$GITHUB_REPOSITORY" -D /tmp/extra -p '*_libretro.*' ||
+             { echo "::warning::no extra-cores release in $GITHUB_REPOSITORY, using Sype0/retroarch-tizen's";
+               rm -rf /tmp/extra/*; gh release download extra-cores -R Sype0/retroarch-tizen -D /tmp/extra -p '*_libretro.*'; }; then
             for js in /tmp/extra/*_libretro.js; do
               name=$(basename "$js")
               sed -e 's/import\.meta\.url/window.__RA_SCRIPT_URL/g' \

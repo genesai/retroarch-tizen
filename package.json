@@ -20,11 +20,11 @@
     "2",
     "3"
   ],
-  "author": "Sype0",
+  "author": "genesai (fork of Sype0/retroarch-tizen)",
   "license": "GPL-3.0-or-later",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Sype0/retroarch-tizen.git"
+    "url": "https://github.com/genesai/retroarch-tizen.git"
   },
   "serviceFile": "tizenbrew/service.js"
 }

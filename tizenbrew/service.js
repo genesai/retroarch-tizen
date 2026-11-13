@@ -21,7 +21,7 @@ var os = require("os");
 var PORT = 8085;
 var MAX_UPLOAD = 512 * 1024 * 1024;
 var FILES_BASE = (typeof process !== "undefined" && process.env && process.env.RA_PHONE_BASE) ||
-   "https://cdn.jsdelivr.net/gh/Sype0/retroarch-tizen/app/";
+   "https://cdn.jsdelivr.net/gh/genesai/retroarch-tizen/app/";
 var PHONE_FILES = { "/": "phone.html", "/phone.html": "phone.html", "/cores.js": "cores.js" };
 var TYPES = { html: "text/html; charset=utf-8", js: "application/javascript; charset=utf-8" };
 

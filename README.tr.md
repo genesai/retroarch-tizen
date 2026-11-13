@@ -19,17 +19,17 @@ Samsung Tizen Smart TV'ler için RetroArch. [libretro web player](https://web.li
 TizenBrew açıkken modül yöneticisine şunu ekle:
 
 ```
-gh/Sype0/retroarch-tizen
+gh/genesai/retroarch-tizen
 ```
 
 ### B) .wgt uygulaması (USB desteği için)
 
-TizenBrew Installer ile **GitHub reposundan kur** seçeneğine `Sype0/retroarch-tizen` yaz
-veya [Releases](https://github.com/Sype0/retroarch-tizen/releases) sayfasındaki `RetroArch.wgt`
+TizenBrew Installer ile **GitHub reposundan kur** seçeneğine `genesai/retroarch-tizen` yaz
+veya [Releases](https://github.com/genesai/retroarch-tizen/releases) sayfasındaki `RetroArch.wgt`
 dosyasını USB'den kur. Tizen 7+ TV'lerde installer paketi kendi sertifikanla yeniden imzalar.
 
 Uygulama kabuğu TV'de çalışır; emülatör çekirdekleri (wasm) ilk açılışta
-<https://sype0.github.io/retroarch-tizen/> adresinden indirilir, bu yüzden internet gerekir.
+<https://genesai.github.io/retroarch-tizen/> adresinden indirilir, bu yüzden internet gerekir.
 
 ## ROM yükleme
 
@@ -108,7 +108,7 @@ Asyncify ile bağlanır).
 İmzalama için repo secret'ları: `TIZEN_AUTHOR_P12` (base64 PKCS#12) ve `TIZEN_AUTHOR_PASSWORD`; bunlar
 yoksa her derleme geçici bir sertifikayla imzalanır.
 
-Yerelde denemek için `app/` klasörünü herhangi bir web sunucusuyla aç; `?base=https://sype0.github.io/retroarch-tizen/`
+Yerelde denemek için `app/` klasörünü herhangi bir web sunucusuyla aç; `?base=https://genesai.github.io/retroarch-tizen/`
 parametresi çekirdekleri Pages'ten çeker, `?fps=1` RetroArch'ın FPS sayacını açar.
 
 ## Lisans

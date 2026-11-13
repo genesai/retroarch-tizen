@@ -11,7 +11,7 @@
 (function () {
    "use strict";
 
-   var REMOTE_BASE = "https://sype0.github.io/retroarch-tizen/";
+   var REMOTE_BASE = "https://genesai.github.io/retroarch-tizen/";
    var RA_HOME = "/home/web_user/retroarch";
    var CFG_PATH = RA_HOME + "/userdata/retroarch.cfg";
    var ROM_DIR = RA_HOME + "/roms";
