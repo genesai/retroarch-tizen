@@ -6,14 +6,17 @@
 //   - scenario "rom":  load a ROM through the network-folder browser
 //   - scenario "remote-assets": served from 127.0.0.1 like TizenBrew, so
 //     cores and the bundle come cross-origin from GitHub Pages
+//   - scenario "gamepad": a controller already in use in the launcher must
+//     still reach RetroArch (app/pads.js)
 import { chromium } from "playwright";
 
 const [siteUrl, romUrl, tbUrl, romFile] = process.argv.slice(2);
 const browser = await chromium.launch();
 let failed = false;
 
-async function scenario(name, url, steps) {
+async function scenario(name, url, steps, init) {
    const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+   if (init) await page.addInitScript(init);
    const logs = [];
    page.on("console", (m) => logs.push(`[${m.type()}] ${m.text()}`));
    page.on("pageerror", (e) => logs.push(`[pageerror] ${e.message}`));
@@ -87,6 +90,43 @@ await scenario("rom", siteUrl, async (page, shot) => {
 });
 
 if (tbUrl) await scenario("remote-assets", tbUrl, bootMenu);
+
+// A pad the page can see from the start: the browser never sends a
+// "gamepadconnected" event for it once RetroArch is listening, which is what
+// happens on a TV when the controller was used to pick the game.
+const fakePad = () => {
+   const pad = {
+      id: "Smoke test pad (STANDARD GAMEPAD)", index: 0, connected: true, mapping: "standard", timestamp: 0,
+      axes: [0, 0, 0, 0],
+      buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })),
+   };
+   navigator.getGamepads = () => [pad, null, null, null];
+   window.__padButton = (i, down) => {
+      pad.buttons[i] = { pressed: down, touched: down, value: down ? 1 : 0 };
+      pad.timestamp = performance.now();
+   };
+};
+
+async function padButton(page, button) {
+   await page.evaluate((b) => window.__padButton(b, true), button);
+   await page.waitForTimeout(150);
+   await page.evaluate((b) => window.__padButton(b, false), button);
+   await page.waitForTimeout(150);
+}
+
+await scenario("gamepad", siteUrl, async (page, shot) => {
+   await padButton(page, 0); // first system (FCEUmm)
+   await page.waitForSelector("#screen-source.active");
+   for (let i = 0; i < 5; i++) await padButton(page, 13); // last entry: menu
+   await padButton(page, 0);
+   await page.waitForSelector("body.playing", { timeout: 180000 });
+   await page.waitForTimeout(8000);
+   const before = await page.screenshot({ path: "shot-gamepad-1-menu.png" });
+   await padButton(page, 13); // D-pad down in RetroArch's menu
+   await page.waitForTimeout(1000);
+   const after = await page.screenshot({ path: "shot-gamepad-2-menu-nav.png" });
+   if (before.equals(after)) throw new Error("the controller did not move RetroArch's menu");
+}, fakePad);
 
 await scenario("n64", siteUrl + "?fps=1", async (page, shot) => {
    await page.click('.tile:has-text("Nintendo 64")');

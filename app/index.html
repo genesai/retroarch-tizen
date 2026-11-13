@@ -48,6 +48,7 @@
          <div id="core-grid" class="grid"></div>
          <div class="row">
             <button class="btn small" id="btn-help">Remote keys</button>
+            <button class="btn small" id="btn-pads">Controller test</button>
             <button class="btn small" id="btn-reset">Reset settings</button>
          </div>
       </section>
@@ -86,8 +87,17 @@
             <tr><td>1 / 3</td><td>L / R</td></tr>
             <tr><td>CH + / CH −</td><td>Save / load state</td></tr>
             <tr><td>Play/Pause</td><td>Pause</td></tr>
+            <tr><td>Controller: hold Start for 2 seconds</td><td>RetroArch menu</td></tr>
          </table>
-         <p class="muted">USB/Bluetooth gamepads are detected automatically. To leave, choose <b>Quit RetroArch</b> in the menu.</p>
+         <p class="muted">USB/Bluetooth gamepads are detected automatically; <b>Controller test</b> on the home screen shows what the TV reports for yours. To leave, choose <b>Quit RetroArch</b> in the menu.</p>
+      </section>
+
+      <section id="screen-pads" class="screen">
+         <h2>Controller test</h2>
+         <p class="muted">Press buttons on the controller. Every controller the TV passes on to apps is listed with what it reports. If yours stays missing, try another of its modes and pair it again. Press <b>Back</b> on the remote twice to leave.</p>
+         <div id="pads-list" class="scroll"></div>
+         <p class="muted">Keys received (from the remote, or from a controller the TV treats as one):</p>
+         <pre id="pads-keys"></pre>
       </section>
    </div>
 
@@ -104,6 +114,7 @@
    <script src="browserfs.min.js"></script>
    <script src="cores.js"></script>
    <script src="qrcode.js"></script>
+   <script src="pads.js"></script>
    <script src="app.js"></script>
 </body>
 </html>

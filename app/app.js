@@ -127,6 +127,7 @@
       }
       if (e.type !== "keydown") return;
       if (loadingActive) { e.preventDefault(); return; }
+      if (currentScreen === "screen-pads") { padTestKey(e); return; }
       navKey(e);
    }
 
@@ -232,10 +233,13 @@
       e.preventDefault();
    }
 
-   /* Gamepad support in the launcher (RetroArch handles pads itself). */
+   /* Gamepad support in the launcher. In a game RetroArch reads the pads
+      itself; pads.js makes sure it hears about the ones already in use here. */
    var padPrev = {};
    function pollPads() {
-      if (!playing && navigator.getGamepads) {
+      if (!playing && currentScreen === "screen-pads") {
+         renderPadTest();
+      } else if (!playing && navigator.getGamepads) {
          var pads = navigator.getGamepads();
          for (var i = 0; i < pads.length; i++) {
             var p = pads[i];
@@ -261,6 +265,62 @@
       requestAnimationFrame(pollPads);
    }
    requestAnimationFrame(pollPads);
+
+   /* ---- Controller test: what the TV reports for each pad ---- */
+
+   /* W3C "standard" layout, named as RetroArch's default binds use it. */
+   var STD_BUTTONS = ["B (bottom)", "A (right)", "Y (left)", "X (top)", "L", "R", "L2", "R2",
+      "Select", "Start", "L3", "R3", "Up", "Down", "Left", "Right", "Home"];
+   var padTestHtml = null;
+   var padTestKeys = [];
+   var padTestBackAt = 0;
+
+   function openPadTest() {
+      padTestHtml = null;
+      padTestKeys = [];
+      padTestBackAt = 0;
+      $("pads-keys").textContent = "";
+      showScreen("screen-pads");
+   }
+
+   function renderPadTest() {
+      var pads = window.RAPads.list();
+      var html = pads.length ? "" : '<div class="pad muted">No controller reported yet. Press a button on it.</div>';
+      pads.forEach(function (p) {
+         var std = p.mapping === "standard";
+         var down = [];
+         for (var b = 0; b < p.buttons.length; b++) {
+            var btn = p.buttons[b];
+            if (btn && (btn.pressed || btn.value > 0.5))
+               down.push(std && STD_BUTTONS[b] ? b + " " + STD_BUTTONS[b] : String(b));
+         }
+         var axes = [].map.call(p.axes, function (v, n) { return n + ": " + (Math.abs(v) < 0.005 ? "0" : v.toFixed(2)); });
+         html += '<div class="pad"><div class="padname">' + (p.index + 1) + ". " + esc(p.id) + "</div>" +
+            '<div class="muted">Layout: ' + (std
+               ? "standard, fits RetroArch's default buttons"
+               : "not standard, set the buttons in RetroArch under Settings → Input → RetroPad Binds") +
+            " · " + p.buttons.length + " buttons, " + p.axes.length + " axes</div>" +
+            "<div>Pressed: <b>" + (down.length ? esc(down.join(", ")) : "—") + "</b></div>" +
+            '<div class="muted">Axes: ' + esc(axes.join("   ") || "—") + "</div></div>";
+      });
+      if (html !== padTestHtml) {
+         padTestHtml = html;
+         $("pads-list").innerHTML = html;
+      }
+   }
+
+   /* Controller buttons must not navigate here, so only a double Back leaves. */
+   function padTestKey(e) {
+      e.preventDefault();
+      if (e.repeat) return;
+      padTestKeys.unshift("keyCode " + e.keyCode + (e.key ? "  key " + e.key : "") + (e.code ? "  code " + e.code : ""));
+      padTestKeys.length = Math.min(padTestKeys.length, 4);
+      $("pads-keys").textContent = padTestKeys.join("\n");
+      if (e.keyCode !== KEY.BACK && e.keyCode !== KEY.ESC) return;
+      var now = Date.now();
+      if (now - padTestBackAt < 1500) goBack();
+      padTestBackAt = now;
+   }
 
    function el(tag, cls, html) {
       var e = document.createElement(tag);
@@ -407,6 +467,8 @@
       'audio_latency = "128"',
       'input_exit_emulator = "nul"',
       'input_autodetect_enable = "true"',
+      /* hold Start for 2 seconds: the only way to the menu without the remote */
+      'input_menu_toggle_gamepad_combo = "7"',
       'menu_show_core_updater = "false"',
       'menu_show_online_updater = "false"',
       'config_save_on_exit = "true"',
@@ -414,6 +476,36 @@
       'savestate_thumbnail_enable = "false"',
       ""
    ].join("\n");
+
+   /* Defaults introduced after a TV may already have a saved retroarch.cfg.
+      Each revision is applied once, and only to settings that still have
+      RetroArch's own default, so a choice made in the menu is kept.
+      revision -> { setting: [RetroArch's default, ours] } */
+   var CFG_REV = 1;
+   var CFG_REV_PATH = RA_HOME + "/userdata/tizen-cfg-rev";
+   var CFG_UPGRADES = {
+      1: { input_menu_toggle_gamepad_combo: ["0", "7"] }
+   };
+
+   function upgradeCfg(FS) {
+      var rev = 0;
+      try { rev = parseInt(FS.readFile(CFG_REV_PATH, { encoding: "utf8" }), 10) || 0; } catch (e) { /* older install */ }
+      if (rev >= CFG_REV) return;
+      try {
+         var cfg = FS.readFile(CFG_PATH, { encoding: "utf8" });
+         for (var r = rev + 1; r <= CFG_REV; r++) {
+            var set = CFG_UPGRADES[r] || {};
+            for (var key in set) {
+               var line = new RegExp("^" + key + ' *= *"?([^"\\n]*)"? *$', "m");
+               var found = line.exec(cfg);
+               if (!found) cfg += (/\n$/.test(cfg) ? "" : "\n") + key + ' = "' + set[key][1] + '"\n';
+               else if (found[1] === set[key][0]) cfg = cfg.replace(line, key + ' = "' + set[key][1] + '"');
+            }
+         }
+         FS.writeFile(CFG_PATH, cfg);
+         FS.writeFile(CFG_REV_PATH, String(CFG_REV));
+      } catch (e) { log("config upgrade failed", e); }
+   }
 
    function mkdirp(FS, path) {
       var parts = path.split("/"), cur = "";
@@ -482,7 +574,11 @@
          mkdirp(FS, RA_HOME + "/userdata");
          var hasCfg = true;
          try { FS.stat(CFG_PATH); } catch (e) { hasCfg = false; }
-         if (!hasCfg) FS.writeFile(CFG_PATH, DEFAULT_CFG);
+         if (hasCfg) upgradeCfg(FS);
+         else {
+            FS.writeFile(CFG_PATH, DEFAULT_CFG);
+            FS.writeFile(CFG_REV_PATH, String(CFG_REV));
+         }
 
          var content = "--menu";
          if (pendingRom) {
@@ -525,6 +621,7 @@
          grid.appendChild(t);
       });
       $("btn-help").onclick = function () { showScreen("screen-help"); };
+      $("btn-pads").onclick = openPadTest;
       $("btn-reset").onclick = resetSettings;
    }
 
