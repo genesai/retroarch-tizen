@@ -1,7 +1,7 @@
 {
   "name": "retroarch-tizen",
   "appName": "RetroArch",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "RetroArch (libretro web player) for Samsung Tizen TVs: remote control and gamepad support, ROMs from USB or a network folder.",
   "author": "genesai (fork of Sype0/retroarch-tizen)",
   "license": "GPL-3.0-or-later",

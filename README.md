@@ -68,6 +68,13 @@ buttons and sticks as you press them. If a controller is missing there, try anot
 8BitDo controllers: hold Start with B, X, Y or A while switching it on) and pair it again. A controller
 without the standard layout can be remapped under *Settings → Input → RetroPad Binds*.
 
+Buttons go by position, as on a SNES pad: B at the bottom confirms and A on the right goes back, in
+the launcher and in RetroArch's menu. Some controllers with a Nintendo layout number their buttons by
+the printed letter instead, so A and B (and X and Y) come out swapped; the 8BitDo SF30 Pro in Android
+mode does this on Samsung TVs and is swapped back automatically. For any other controller, press
+**Select** on it on the Controller test screen to swap its face buttons; the choice is remembered per
+controller model.
+
 ## Systems
 
 NES, SNES, Game Boy / Color / Advance, Sega Master System / Game Gear / Mega Drive / CD / 32X,

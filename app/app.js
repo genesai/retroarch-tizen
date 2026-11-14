@@ -281,8 +281,16 @@
       showScreen("screen-pads");
    }
 
+   var padTestSelect = {};
+
    function renderPadTest() {
       var pads = window.RAPads.list();
+      pads.forEach(function (p) {
+         /* Select toggles the face-button swap for this controller model. */
+         var sel = !!(p.mapping === "standard" && p.buttons[8] && p.buttons[8].pressed);
+         if (sel && !padTestSelect[p.index]) window.RAPads.setSwapped(p, !window.RAPads.swapped(p));
+         padTestSelect[p.index] = sel;
+      });
       var html = pads.length ? "" : '<div class="pad muted">No controller reported yet. Press a button on it.</div>';
       pads.forEach(function (p) {
          var std = p.mapping === "standard";
@@ -298,6 +306,10 @@
                ? "standard, fits RetroArch's default buttons"
                : "not standard, set the buttons in RetroArch under Settings → Input → RetroPad Binds") +
             " · " + p.buttons.length + " buttons, " + p.axes.length + " axes</div>" +
+            (std ? '<div class="muted">Face buttons: <b>' + (window.RAPads.swapped(p)
+               ? "swapped (for controllers numbered by letter, like 8BitDo in Android mode)"
+               : "as the TV reports them") +
+               "</b>. If A and B come out wrong, press Select on this controller to switch.</div>" : "") +
             "<div>Pressed: <b>" + (down.length ? esc(down.join(", ")) : "—") + "</b></div>" +
             '<div class="muted">Axes: ' + esc(axes.join("   ") || "—") + "</div></div>";
       });

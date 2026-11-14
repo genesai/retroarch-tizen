@@ -8,6 +8,8 @@
 //     as in the .wgt (file://) where they come from GitHub Pages
 //   - scenario "gamepad": a controller already in use in the launcher must
 //     still reach RetroArch (app/pads.js)
+//   - scenario "pad-swap": face buttons of a controller numbered by label are
+//     swapped back, and the Controller test screen can turn that off
 import { chromium } from "playwright";
 
 const [siteUrl, romUrl, remoteUrl] = process.argv.slice(2);
@@ -94,9 +96,9 @@ if (remoteUrl) await scenario("remote-assets", remoteUrl, bootMenu);
 // A pad the page can see from the start: the browser never sends a
 // "gamepadconnected" event for it once RetroArch is listening, which is what
 // happens on a TV when the controller was used to pick the game.
-const fakePad = () => {
+const fakePadScript = (id) => {
    const pad = {
-      id: "Smoke test pad (STANDARD GAMEPAD)", index: 0, connected: true, mapping: "standard", timestamp: 0,
+      id, index: 0, connected: true, mapping: "standard", timestamp: 0,
       axes: [0, 0, 0, 0],
       buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })),
    };
@@ -106,6 +108,7 @@ const fakePad = () => {
       pad.timestamp = performance.now();
    };
 };
+const fakePad = { content: `(${fakePadScript})("Smoke test pad (STANDARD GAMEPAD)")` };
 
 async function padButton(page, button) {
    await page.evaluate((b) => window.__padButton(b, true), button);
@@ -127,6 +130,51 @@ await scenario("gamepad", siteUrl, async (page, shot) => {
    const after = await page.screenshot({ path: "shot-gamepad-2-menu-nav.png" });
    if (before.equals(after)) throw new Error("the controller did not move RetroArch's menu");
 }, fakePad);
+
+// An 8BitDo SF30 Pro in Android mode numbers its face buttons by label, so
+// the TV reports A (right) as 0 (bottom). pads.js swaps them back, and Select
+// on the Controller test screen turns that off again.
+const fake8BitDo = { content: `(${fakePadScript})("8Bitdo SF30 Pro (STANDARD GAMEPAD Vendor: 2dc8 Product: 6101)")` };
+await scenario("pad-swap", siteUrl, async (page, shot) => {
+   await page.evaluate(() => window.__padButton(0, true)); // A, on the right
+   const seen = await page.evaluate(() => navigator.getGamepads()[0].buttons.map((b) => b.pressed));
+   await page.evaluate(() => window.__padButton(0, false));
+   if (!seen[1] || seen[0]) throw new Error("A was not moved to the right button: " + seen.slice(0, 4));
+   await padButton(page, 1); // B, at the bottom: confirms
+   await page.waitForSelector("#screen-source.active");
+   await page.keyboard.press("Escape");
+   await page.waitForSelector("#screen-home.active");
+   await page.click("#btn-pads");
+   await page.waitForSelector("#screen-pads.active");
+   await page.waitForFunction(() => /Face buttons: swapped/.test(document.getElementById("pads-list").textContent));
+   await shot("1-swapped");
+   await padButton(page, 8); // Select: back to the TV's numbering
+   await page.waitForFunction(() => /Face buttons: as the TV reports/.test(document.getElementById("pads-list").textContent));
+   const saved = await page.evaluate(() => localStorage.getItem("ra_pad_swap"));
+   if (saved !== '{"2dc8:6101":false}') throw new Error("choice not saved: " + saved);
+   const now = await page.evaluate(() => { window.__padButton(0, true); return navigator.getGamepads()[0].buttons[0].pressed; });
+   await page.evaluate(() => window.__padButton(0, false));
+   if (!now) throw new Error("buttons still swapped after Select");
+   await shot("2-as-reported");
+   await padButton(page, 8); // swapped again
+   await page.waitForFunction(() => /Face buttons: swapped/.test(document.getElementById("pads-list").textContent));
+   await page.keyboard.press("Escape");
+   await page.keyboard.press("Escape"); // twice to leave
+   await page.waitForSelector("#screen-home.active");
+   // Into RetroArch's menu with B (bottom), then B again must confirm there
+   // too: RetroArch confirms with the bottom button by default.
+   await padButton(page, 1);
+   await page.waitForSelector("#screen-source.active");
+   for (let i = 0; i < 5; i++) await padButton(page, 13);
+   await padButton(page, 1);
+   await page.waitForSelector("body.playing", { timeout: 180000 });
+   await page.waitForTimeout(8000);
+   const before = await page.screenshot({ path: "shot-pad-swap-3-menu.png" });
+   await padButton(page, 1);
+   await page.waitForTimeout(1000);
+   const after = await page.screenshot({ path: "shot-pad-swap-4-confirmed.png" });
+   if (before.equals(after)) throw new Error("B (bottom) did not confirm in RetroArch's menu");
+}, fake8BitDo);
 
 await scenario("n64", siteUrl + "?fps=1", async (page, shot) => {
    await page.click('.tile:has-text("Nintendo 64")');

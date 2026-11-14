@@ -36,6 +36,70 @@
    window.RAPads = { list: list };
    if (!navigator.getGamepads) return;
 
+   /*
+    * Face buttons. The "standard" layout numbers them by position (0 bottom,
+    * 1 right, 2 left, 3 top), which is what RetroArch binds. Some controllers
+    * with a Nintendo layout are numbered by the letter printed on them
+    * instead, so A (right) arrives as 0 (bottom) and the game sees A and B,
+    * X and Y, swapped. For those, 0/1 and 2/3 are swapped back here, in
+    * navigator.getGamepads() itself, so the launcher, the Controller test
+    * screen and every core see the same buttons. The choice is per controller
+    * model and can be changed on the Controller test screen.
+    */
+   var SWAP_DEFAULT = {
+      "2dc8:6101": true   /* 8BitDo SF30 Pro / SN30 Pro in Android mode, seen on a 2022 Samsung TV */
+   };
+   var SWAP_STORE = "ra_pad_swap";
+   var swapPrefs = {};
+   try { swapPrefs = JSON.parse(localStorage.getItem(SWAP_STORE)) || {}; } catch (e) { /* none saved */ }
+
+   function model(p) {
+      var m = /Vendor: ?([0-9a-f]{4}) Product: ?([0-9a-f]{4})/i.exec(p.id);
+      return m ? (m[1] + ":" + m[2]).toLowerCase() : p.id;
+   }
+   function swapped(p) {
+      if (p.mapping !== "standard") return false;
+      var k = model(p);
+      return k in swapPrefs ? !!swapPrefs[k] : !!SWAP_DEFAULT[k];
+   }
+   function setSwapped(p, on) {
+      swapPrefs[model(p)] = !!on;
+      try { localStorage.setItem(SWAP_STORE, JSON.stringify(swapPrefs)); } catch (e) { /* not saved */ }
+   }
+
+   function remap(p) {
+      if (!p || !swapped(p)) return p;
+      var b = Array.prototype.slice.call(p.buttons);
+      var t = b[0]; b[0] = b[1]; b[1] = t;
+      t = b[2]; b[2] = b[3]; b[3] = t;
+      /* Same fields as a Gamepad, which emscripten copies field by field. */
+      return {
+         id: p.id, index: p.index, connected: p.connected, mapping: p.mapping,
+         timestamp: p.timestamp, axes: p.axes, buttons: b,
+         vibrationActuator: p.vibrationActuator, faceButtonsSwapped: true
+      };
+   }
+
+   var nativeGet = navigator.getGamepads;
+   try {
+      Object.defineProperty(navigator, "getGamepads", {
+         configurable: true, writable: true,
+         value: function () {
+            var all = nativeGet.apply(navigator, arguments);
+            if (!all) return all;
+            var out = [];
+            for (var i = 0; i < all.length; i++) out.push(remap(all[i]));
+            return out;
+         }
+      });
+   } catch (e) {
+      console.log("[pads] cannot remap buttons: " + (e && e.message || e));
+   }
+
+   window.RAPads.model = model;
+   window.RAPads.swapped = swapped;
+   window.RAPads.setSwapped = setSwapped;
+
    function tell(l, type, pad) {
       var ev = new Event(type, { cancelable: true });
       Object.defineProperty(ev, "gamepad", { value: pad });
@@ -61,7 +125,8 @@
       });
 
       Object.keys(now).forEach(function (i) {
-         if (!known[i]) console.log("[pads] connected " + i + ": " + now[i].id + " (mapping: " + (now[i].mapping || "none") + ")");
+         if (!known[i]) console.log("[pads] connected " + i + ": " + now[i].id + " (mapping: " + (now[i].mapping || "none") +
+            (swapped(now[i]) ? ", face buttons swapped" : "") + ")");
          known[i] = now[i];
          listeners.gamepadconnected.slice().forEach(function (l) {
             if (l.told[i]) return;
