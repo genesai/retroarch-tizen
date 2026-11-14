@@ -1,7 +1,7 @@
 # RetroArch for Tizen
 
 This is a fork of [Sype0/retroarch-tizen](https://github.com/Sype0/retroarch-tizen) with gamepad fixes
-(controllers work in games after being used in the launcher, a Controller test screen, hold Start for the
+(controllers work in games after being used in the launcher, a Controller test screen, hold Select for the
 menu) and Game Mode.
 
 RetroArch for Samsung Tizen smart TVs. It adds a TV-specific layer on top of the
@@ -62,9 +62,9 @@ To leave a game, choose **Quit RetroArch** in the menu.
 ## Gamepads
 
 USB and Bluetooth controllers that the TV passes on to apps work in the launcher and in games. On a
-controller, hold **Start** for 2 seconds to open the RetroArch menu. **Controller test** on the home
-screen lists every controller the TV reports, whether it uses the standard button layout, and the
-buttons and sticks as you press them. If a controller is missing there, try another of its modes (for
+controller, hold **Select** for 2 seconds to open the RetroArch menu (not Start, which switches
+8BitDo controllers off). **Controller test** on the home screen lists every controller the TV
+reports, whether it uses the standard button layout, and the buttons and sticks as you press them. If a controller is missing there, try another of its modes (for
 8BitDo controllers: hold Start with B, X, Y or A while switching it on) and pair it again. A controller
 without the standard layout can be remapped under *Settings → Input → RetroPad Binds*.
 

@@ -110,6 +110,16 @@ const fakePadScript = (id) => {
 };
 const fakePad = { content: `(${fakePadScript})("Smoke test pad (STANDARD GAMEPAD)")` };
 
+// The launcher reads pads once per frame; on a cold start the first frames
+// can come later than a short press, so wait until a few have run.
+async function framesRunning(page) {
+   await page.evaluate(() => new Promise((done) => {
+      let n = 0;
+      const tick = () => (++n >= 10 ? done() : requestAnimationFrame(tick));
+      requestAnimationFrame(tick);
+   }));
+}
+
 async function padButton(page, button) {
    await page.evaluate((b) => window.__padButton(b, true), button);
    await page.waitForTimeout(150);
@@ -118,6 +128,7 @@ async function padButton(page, button) {
 }
 
 await scenario("gamepad", siteUrl, async (page, shot) => {
+   await framesRunning(page);
    await padButton(page, 0); // first system (FCEUmm)
    await page.waitForSelector("#screen-source.active");
    for (let i = 0; i < 5; i++) await padButton(page, 13); // last entry: menu
@@ -136,9 +147,15 @@ await scenario("gamepad", siteUrl, async (page, shot) => {
 // on the Controller test screen turns that off again.
 const fake8BitDo = { content: `(${fakePadScript})("8Bitdo SF30 Pro (STANDARD GAMEPAD Vendor: 2dc8 Product: 6101)")` };
 await scenario("pad-swap", siteUrl, async (page, shot) => {
-   await page.evaluate(() => window.__padButton(0, true)); // A, on the right
-   const seen = await page.evaluate(() => navigator.getGamepads()[0].buttons.map((b) => b.pressed));
-   await page.evaluate(() => window.__padButton(0, false));
+   await framesRunning(page);
+   // A, on the right. Pressed, read and released in one go: A is now Back,
+   // and the launcher must not see it.
+   const seen = await page.evaluate(() => {
+      window.__padButton(0, true);
+      const pressed = navigator.getGamepads()[0].buttons.map((b) => b.pressed);
+      window.__padButton(0, false);
+      return pressed;
+   });
    if (!seen[1] || seen[0]) throw new Error("A was not moved to the right button: " + seen.slice(0, 4));
    await padButton(page, 1); // B, at the bottom: confirms
    await page.waitForSelector("#screen-source.active");
@@ -152,8 +169,12 @@ await scenario("pad-swap", siteUrl, async (page, shot) => {
    await page.waitForFunction(() => /Face buttons: as the TV reports/.test(document.getElementById("pads-list").textContent));
    const saved = await page.evaluate(() => localStorage.getItem("ra_pad_swap"));
    if (saved !== '{"2dc8:6101":false}') throw new Error("choice not saved: " + saved);
-   const now = await page.evaluate(() => { window.__padButton(0, true); return navigator.getGamepads()[0].buttons[0].pressed; });
-   await page.evaluate(() => window.__padButton(0, false));
+   const now = await page.evaluate(() => {
+      window.__padButton(0, true);
+      const pressed = navigator.getGamepads()[0].buttons[0].pressed;
+      window.__padButton(0, false);
+      return pressed;
+   });
    if (!now) throw new Error("buttons still swapped after Select");
    await shot("2-as-reported");
    await padButton(page, 8); // swapped again
@@ -175,6 +196,47 @@ await scenario("pad-swap", siteUrl, async (page, shot) => {
    const after = await page.screenshot({ path: "shot-pad-swap-4-confirmed.png" });
    if (before.equals(after)) throw new Error("B (bottom) did not confirm in RetroArch's menu");
 }, fake8BitDo);
+
+// Holding Select for 2 seconds opens RetroArch's menu in game (not Start,
+// which also switches 8BitDo controllers off). A short press must not.
+await scenario("hold-select", siteUrl, async (page, shot) => {
+   await framesRunning(page);
+   await padButton(page, 0); // FCEUmm
+   await page.waitForSelector("#screen-source.active");
+   await page.keyboard.press("Enter"); // network folder
+   await page.waitForSelector("#screen-url.active");
+   await page.fill("#url-input", romUrl);
+   await page.keyboard.press("Enter");
+   await page.waitForSelector("#screen-browser.active .item.focused");
+   await page.keyboard.press("Enter"); // first ROM
+   await page.waitForSelector("body.playing", { timeout: 180000 });
+   await page.waitForTimeout(6000);
+   await shot("1-game");
+   // RGUI's background is a dark grey checkerboard; nestest is purple on
+   // black, and switches its test page on a short Select press.
+   const menuShare = (png) => page.evaluate(async (b64) => {
+      const img = new Image();
+      img.src = "data:image/png;base64," + b64;
+      await img.decode();
+      const c = document.createElement("canvas");
+      c.width = img.width; c.height = img.height;
+      const g = c.getContext("2d");
+      g.drawImage(img, 0, 0);
+      const d = g.getImageData(0, 0, c.width, c.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] === d[i + 1] && d[i] === d[i + 2] && d[i] >= 20 && d[i] <= 60) n++;
+      return n / (d.length / 4);
+   }, png.toString("base64"));
+   await page.evaluate(() => window.__padButton(8, true));
+   await page.waitForTimeout(500);
+   const short = await menuShare(await shot("2-select-short"));
+   if (short > 0.05) throw new Error("menu opened before Select was held for 2 seconds");
+   await page.waitForTimeout(2500);
+   await page.evaluate(() => window.__padButton(8, false));
+   await page.waitForTimeout(1000);
+   const held = await menuShare(await shot("3-select-held"));
+   if (held < 0.3) throw new Error("holding Select did not open the menu");
+}, fakePad);
 
 await scenario("n64", siteUrl + "?fps=1", async (page, shot) => {
    await page.click('.tile:has-text("Nintendo 64")');

@@ -477,8 +477,10 @@
       'audio_latency = "128"',
       'input_exit_emulator = "nul"',
       'input_autodetect_enable = "true"',
-      /* hold Start for 2 seconds: the only way to the menu without the remote */
-      'input_menu_toggle_gamepad_combo = "7"',
+      /* hold Select for 2 seconds: the only way to the menu without the
+         remote. Not Start, which many controllers (8BitDo) also hold to
+         switch off. */
+      'input_menu_toggle_gamepad_combo = "8"',
       'menu_show_core_updater = "false"',
       'menu_show_online_updater = "false"',
       'config_save_on_exit = "true"',
@@ -489,12 +491,13 @@
 
    /* Defaults introduced after a TV may already have a saved retroarch.cfg.
       Each revision is applied once, and only to settings that still have
-      RetroArch's own default, so a choice made in the menu is kept.
-      revision -> { setting: [RetroArch's default, ours] } */
-   var CFG_REV = 1;
+      the previous default, so a choice made in the menu is kept.
+      revision -> { setting: [previous default, new one] } */
+   var CFG_REV = 2;
    var CFG_REV_PATH = RA_HOME + "/userdata/tizen-cfg-rev";
    var CFG_UPGRADES = {
-      1: { input_menu_toggle_gamepad_combo: ["0", "7"] }
+      1: { input_menu_toggle_gamepad_combo: ["0", "7"] },  /* RetroArch's none -> hold Start */
+      2: { input_menu_toggle_gamepad_combo: ["7", "8"] }   /* hold Start -> hold Select */
    };
 
    function upgradeCfg(FS) {
